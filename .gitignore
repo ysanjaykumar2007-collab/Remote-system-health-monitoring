@@ -1,0 +1,30 @@
+__pycache__/
+*.pyc
+*.backup.py
+*.backup.html
+*.log
+.venv/
+venv/
+
+# Development backups
+*.bak
+*.pre_*
+*.backup
+*.backup.*
+Makefile.pre_*
+README.md.backup
+backups/
+
+# Python temporary files
+__pycache__/
+*.pyc
+
+# Runtime logs
+*.log
+logs/*.jsonl
+sdn_controller.py
+
+# Duplicate development directories
+controller/
+src/
+topology/

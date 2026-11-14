@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetPulse | System Monitoring</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0b1120;
+            color: #e2e8f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .sidebar {
+            width: 230px;
+            height: 100vh;
+            background: #111827;
+            position: fixed;
+            padding: 30px 20px;
+            border-right: 1px solid #263244;
+        }
+
+        .logo {
+            font-size: 23px;
+            font-weight: bold;
+            color: #38bdf8;
+            margin-bottom: 45px;
+        }
+
+        .nav-item {
+            padding: 14px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            color: #94a3b8;
+        }
+
+        .nav-item.active {
+            background: #1e293b;
+            color: #38bdf8;
+        }
+
+        .main {
+            margin-left: 230px;
+            padding: 35px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 35px;
+        }
+
+        .header h1 {
+            font-size: 27px;
+        }
+
+        .preview {
+            background: #422006;
+            color: #fbbf24;
+            padding: 10px 16px;
+            border-radius: 7px;
+            font-size: 12px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #151f30;
+            padding: 22px;
+            border-radius: 12px;
+            border: 1px solid #263244;
+        }
+
+        .card p {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .card h2 {
+            font-size: 30px;
+        }
+
+        .healthy { color: #22c55e; }
+        .warning { color: #facc15; }
+        .critical { color: #ef4444; }
+        .offline { color: #94a3b8; }
+
+        .section {
+            background: #151f30;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #263244;
+            margin-bottom: 25px;
+        }
+
+        .section h3 {
+            margin-bottom: 22px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 16px 12px;
+            border-bottom: 1px solid #263244;
+            font-size: 13px;
+        }
+
+        th {
+            color: #94a3b8;
+        }
+
+        .status {
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+
+        .status.healthy {
+            background: #064e3b;
+        }
+
+        .status.warning {
+            background: #713f12;
+        }
+
+        .status.critical {
+            background: #7f1d1d;
+        }
+
+        .status.offline {
+            background: #334155;
+        }
+
+        .grid-two {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+        }
+
+        .topology {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .node {
+            padding: 14px 22px;
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            border-radius: 9px;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .hosts {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .line {
+            width: 2px;
+            height: 25px;
+            background: #38bdf8;
+        }
+
+        .alerts {
+            border-left: 3px solid #ef4444;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: #1e293b;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .alert-warning {
+            border-left-color: #facc15;
+        }
+
+        .alert-success {
+            border-left-color: #22c55e;
+        }
+
+        .sdn-status {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        @media(max-width: 1100px) {
+            .cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-two {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media(max-width: 700px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 18px;
+            }
+
+            .cards {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    
+/* NetPulse animated network topology */
+.network-branches {
+    width: 100%;
+    max-width: 600px;
+}
+
+.network-wires {
+    display: block;
+    width: 100%;
+    height: 145px;
+    overflow: visible;
+}
+
+.network-wires path {
+    fill: none;
+    stroke: #22c55e;
+    stroke-width: 2.5;
+    vector-effect: non-scaling-stroke;
+    transition: stroke 0.3s;
+}
+
+.network-wires path.blocked {
+    stroke: #ef4444;
+}
+
+.network-wires path.unknown {
+    stroke: #94a3b8;
+}
+
+.network-wires .packet {
+    fill: #38bdf8;
+    filter: drop-shadow(0 0 4px #38bdf8);
+}
+
+.network-wires .packet.paused {
+    visibility: hidden;
+}
+
+.network-hosts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.network-hosts .node {
+    min-width: 0;
+    padding: 12px 4px;
+}
+
+</style>
+
+<style>
+.sdn-btn {
+    padding: 7px 12px;
+    margin: 3px;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.block-btn {
+    background: #dc3545;
+}
+
+.unblock-btn {
+    background: #198754;
+}
+
+.sdn-btn:hover {
+    opacity: 0.85;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="sidebar">
+    <div class="logo">◈ NetPulse</div>
+    <div class="nav-item active">▦ Dashboard</div>
+    <div class="nav-item">◉ Network Topology</div>
+    <div class="nav-item">▤ Host Monitoring</div>
+    <div class="nav-item">⚡ SDN Controller</div>
+    <div class="nav-item">◷ Event Logs</div>
+</div>
+
+<div class="main">
+
+    <div class="header">
+        <div>
+            <h1>Network Overview</h1>
+            <p style="color:#94a3b8;margin-top:8px">
+                Remote System Health Monitoring
+            </p>
+        </div>
+
+        <div class="preview">● LIVE MONITORING — REAL-TIME DATA</div>
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <p>Total Nodes</p>
+            <h2>5</h2>
+        </div>
+
+        <div class="card">
+            <p>Healthy Nodes</p>
+            <h2 class="healthy">3</h2>
+        </div>
+
+        <div class="card">
+            <p>Warning Nodes</p>
+            <h2 class="warning">1</h2>
+        </div>
+
+        <div class="card">
+            <p>Critical Nodes</p>
+            <h2 class="critical">1</h2>
+        </div>
+
+        <div class="card">
+            <p>Offline Nodes</p>
+            <h2 class="offline">0</h2>
+        </div>
+
+    </div>
+
+    <div class="section">
+        <h3>Host Monitoring</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>HOST</th>
+                    <th>IP ADDRESS</th>
+                    <th>CPU</th>
+                    <th>MEMORY</th>
+                    <th>STATUS</th>
+                    <th>NETWORK ACCESS</th>
+                    <th>SDN CONTROLS</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>Monitor Server (h1)</td>
+                    <td>10.0.0.1</td>
+                    <td>24%</td>
+                    <td>45%</td>
+                    <td><span class="status healthy">Healthy</span></td>
+                </tr>
+
+                <tr>
+                    <td>Host 2</td>
+                    <td>10.0.0.2</td>
+                    <td>35%</td>
+                    <td>56%</td>
+                    <td><span class="status healthy">Healthy</span></td>
+                </tr>
+
+                <tr>
+                    <td>Host 3</td>
+                    <td>10.0.0.3</td>
+                    <td>84%</td>
+                    <td>72%</td>
+                    <td><span class="status warning">Warning</span></td>
+                </tr>
+
+                <tr>
+                    <td>Host 4</td>
+                    <td>10.0.0.4</td>
+                    <td>95%</td>
+                    <td>93%</td>
+                    <td><span class="status critical">Critical</span></td>
+                </tr>
+
+                <tr>
+                    <td>Host 5</td>
+                    <td>10.0.0.5</td>
+                    <td>28%</td>
+                    <td>41%</td>
+                    <td><span class="status healthy">Healthy</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+<!-- LIVE PERFORMANCE CHARTS -->
+<div class="grid-two" id="performance-charts">
+
+    <div class="section">
+        <h3>📈 Live CPU Usage</h3>
+        <p style="color:#94a3b8;font-size:12px;margin-bottom:15px">
+            Average CPU usage across monitored hosts · Updates every 5 seconds
+        </p>
+        <canvas id="cpuChart" width="500" height="220"
+                style="width:100%;height:220px"></canvas>
+    </div>
+
+    <div class="section">
+        <h3>📊 Live Memory Usage</h3>
+        <p style="color:#94a3b8;font-size:12px;margin-bottom:15px">
+            Average memory usage across monitored hosts · Updates every 5 seconds
+        </p>
+        <canvas id="memoryChart" width="500" height="220"
+                style="width:100%;height:220px"></canvas>
+    </div>
+
+</div>
+    <div class="grid-two">
+
+        <div class="section">
+            <h3>Network Topology</h3>
+
+            <div class="topology">
+
+                <div class="node">
+                    <strong>h1</strong><br>
+                    Monitoring Server
+                </div>
+
+                <div class="line"></div>
+
+                <div class="node">
+                    <strong>s1</strong><br>
+                    Open vSwitch
+                </div>
+
+                <div class="network-branches">
+                    <svg class="network-wires" viewBox="0 0 600 145"
+                         preserveAspectRatio="none" aria-hidden="true">
+                        <path id="wire-h2" d="M300 0 L75 145"/>
+                        <path id="wire-h3" d="M300 0 L225 145"/>
+                        <path id="wire-h4" d="M300 0 L375 145"/>
+                        <path id="wire-h5" d="M300 0 L525 145"/>
+
+                        <circle class="packet" data-packet="h2" r="5">
+                            <animateMotion dur="5s" repeatCount="indefinite"
+                                path="M75 145 L300 0"/>
+                        </circle>
+                        <circle class="packet" data-packet="h3" r="5">
+                            <animateMotion dur="5s" repeatCount="indefinite"
+                                path="M225 145 L300 0"/>
+                        </circle>
+                        <circle class="packet" data-packet="h4" r="5">
+                            <animateMotion dur="5s" repeatCount="indefinite"
+                                path="M375 145 L300 0"/>
+                        </circle>
+                        <circle class="packet" data-packet="h5" r="5">
+                            <animateMotion dur="5s" repeatCount="indefinite"
+                                path="M525 145 L300 0"/>
+                        </circle>
+                    </svg>
+
+                    <div class="network-hosts">
+                        <div class="node" data-topology-host="h2">h2</div>
+                        <div class="node" data-topology-host="h3">h3</div>
+                        <div class="node" data-topology-host="h4">h4</div>
+                        <div class="node" data-topology-host="h5">h5</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>SDN Controller</h3>
+
+            <p style="color:#94a3b8;margin-bottom:20px">
+                OpenFlow 1.3
+            </p>
+
+            <p>Controller Status:
+                <span class="sdn-status">● Active (Demo)</span>
+            </p>
+
+            <br>
+
+            <p>Switch: s1</p>
+            <br>
+            <p>Flow Management: Enabled (Demo)</p>
+            <br>
+            
+<p>Priority Rules: Configured (Demo)</p>
+
+<div style="margin-top:28px">
+    <h3 style="margin-bottom:15px">Live OpenFlow Rules</h3>
+
+    <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+                <tr style="color:#94a3b8;text-align:left;border-bottom:1px solid #334155">
+                    <th style="padding:12px">Priority</th>
+                    <th style="padding:12px">Match Conditions</th>
+                    <th style="padding:12px">Packets</th>
+                    <th style="padding:12px">Action</th>
+                </tr>
+            </thead>
+            <tbody id="openflow-table">
+                <tr>
+                    <td colspan="4" style="padding:15px;color:#94a3b8">
+                        Loading live OpenFlow rules...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+        </div>
+
+    </div>
+
+    <div class="section" id="event-logs-section">
+        <h3>◷ SDN Event History</h3>
+
+        <p style="color:#94a3b8;margin:10px 0 20px">
+            Live history of manual and automatic SDN controller actions
+        </p>
+
+        <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse">
+                <thead>
+                    <tr>
+                        <th>TIMESTAMP</th>
+                        <th>HOST</th>
+                        <th>ACTION</th>
+                        <th>SOURCE</th>
+                        <th>ACCESS CHANGED</th>
+                    </tr>
+                </thead>
+
+                <tbody id="event-history-table">
+                    <tr>
+                        <td colspan="5" style="color:#94a3b8">
+                            Loading SDN events...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="grid-two">
+
+        <div class="section">
+            <h3>Recent Alerts</h3>
+
+            <div class="alerts">
+                🔴 Critical CPU usage detected on h4 — 95%
+            </div>
+
+            <div class="alerts alert-warning">
+                🟡 High CPU usage detected on h3 — 84%
+            </div>
+
+            <div class="alerts alert-success">
+                🟢 Health report received from h2
+            </div>
+
+        </div>
+
+        <div class="section">
+            <h3>Monitoring Configuration</h3>
+
+            <p>CPU Warning Threshold: 80%</p>
+            <br>
+            <p>CPU Critical Threshold: 90%</p>
+            <br>
+            <p>Memory Critical Threshold: 90%</p>
+            <br>
+            <p>Heartbeat Timeout: 15 seconds</p>
+        </div>
+
+    </div>
+
+</div>
+<script>
+const API_URL = "/api/status";
+// NetPulse sidebar navigation
+document.addEventListener("DOMContentLoaded", () => {
+    const navItems = document.querySelectorAll(".nav-item");
+    const sections = [...document.querySelectorAll(".section")];
+
+    const findSection = (heading) =>
+        sections.find(section =>
+            section.querySelector("h3")?.textContent.includes(heading)
+        );
+
+    const destinations = [
+        document.querySelector(".header"),
+        findSection("Network Topology"),
+        findSection("Host Monitoring"),
+        findSection("SDN Controller"),
+        document.getElementById("event-logs-section")
+    ];
+
+    navItems.forEach((item, index) => {
+        item.style.cursor = "pointer";
+
+        item.addEventListener("click", () => {
+            const destination = destinations[index];
+
+            if (!destination) return;
+
+            navItems.forEach(nav => nav.classList.remove("active"));
+            item.classList.add("active");
+
+            destination.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+        });
+    });
+});// Store the latest 30 readings (150 seconds of history)
+const cpuHistory = [];
+const memoryHistory = [];
+const MAX_POINTS = 30;
+
+function drawChart(canvasId, values, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const left = 45;
+    const right = 15;
+    const top = 15;
+    const bottom = 30;
+
+    const chartWidth = width - left - right;
+    const chartHeight = height - top - bottom;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Horizontal grid lines and percentage labels
+    ctx.font = "12px Arial";
+    ctx.textAlign = "right";
+
+    for (let percent = 0; percent <= 100; percent += 25) {
+        const y = top + chartHeight * (1 - percent / 100);
+
+        ctx.strokeStyle = "#263244";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(width - right, y);
+        ctx.stroke();
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText(percent + "%", left - 8, y + 4);
+    }
+
+    if (values.length === 0) return;
+
+    // Draw the live data line
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+
+    values.forEach((value, index) => {
+        const x = left + (index / (MAX_POINTS - 1)) * chartWidth;
+        const y = top + chartHeight * (1 - value / 100);
+
+        if (index === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+
+    ctx.stroke();
+
+    // Highlight the latest reading
+    const latest = values[values.length - 1];
+    const x = left + ((values.length - 1) / (MAX_POINTS - 1)) * chartWidth;
+    const y = top + chartHeight * (1 - latest / 100);
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Display the latest percentage
+    ctx.fillStyle = color;
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "right";
+    ctx.fillText(latest.toFixed(1) + "%", width - 15, 20);
+}
+
+function updateCharts(hosts) {
+    const activeHosts = hosts.filter(host =>
+        host.status !== "offline" &&
+        Number.isFinite(Number(host.cpu)) &&
+        Number.isFinite(Number(host.memory))
+    );
+
+    if (activeHosts.length === 0) return;
+
+    const avgCPU = activeHosts.reduce(
+        (sum, host) => sum + Number(host.cpu), 0
+    ) / activeHosts.length;
+
+    const avgMemory = activeHosts.reduce(
+        (sum, host) => sum + Number(host.memory), 0
+    ) / activeHosts.length;
+
+    cpuHistory.push(avgCPU);
+    memoryHistory.push(avgMemory);
+
+    if (cpuHistory.length > MAX_POINTS) cpuHistory.shift();
+    if (memoryHistory.length > MAX_POINTS) memoryHistory.shift();
+
+    drawChart("cpuChart", cpuHistory, "#38bdf8");
+    drawChart("memoryChart", memoryHistory, "#22c55e");
+}
+
+let blockedHostIPs = null;
+let reportingHosts = new Set();
+
+function updateTopologyPackets() {
+    document.querySelectorAll("[data-packet]").forEach(packet => {
+        const host = packet.dataset.packet;
+        const ip = "10.0.0." + host.slice(1);
+
+        const allowed = blockedHostIPs !== null &&
+                        !blockedHostIPs.has(ip);
+
+        packet.style.visibility =
+            allowed && reportingHosts.has(host)
+                ? "visible"
+                : "hidden";
+    });
+}
+
+function getNetworkAccess(ip) {
+    if (blockedHostIPs === null) {
+        return '<span style="color:#f59e0b">● Unknown</span>';
+    }
+
+    if (blockedHostIPs.has(ip)) {
+        return '<span style="color:#ef4444">● Blocked</span>';
+    }
+
+    return '<span style="color:#22c55e">● Allowed</span>';
+}
+
+function updateTopologyAccess() {
+    document.querySelectorAll("[data-topology-host]").forEach(node => {
+        const host = node.dataset.topologyHost;
+        const ip = "10.0.0." + host.slice(1);
+
+        let color = "#94a3b8";
+        let access = "Unknown";
+
+        if (blockedHostIPs !== null) {
+            if (blockedHostIPs.has(ip)) {
+                color = "#ef4444";
+                access = "Blocked";
+            } else {
+                color = "#22c55e";
+                access = "Allowed";
+            }
+        }
+
+        node.style.border = "2px solid " + color;
+        node.style.color = color;
+        node.style.transition = "border-color 0.3s, color 0.3s";
+        node.title = host.toUpperCase() + " — Network Access: " + access;
+
+        const wire = document.getElementById("wire-" + host);
+        if (wire) {
+            wire.classList.toggle("blocked", access === "Blocked");
+            wire.classList.toggle("unknown", access === "Unknown");
+        }
+
+        // Packet visibility is controlled by live reporting status.
+    });
+}
+
+async function updateDashboard() {
+    try {
+        const response = await fetch(API_URL, { cache: "no-store" });
+
+        if (!response.ok) {
+            throw new Error("API unavailable");
+        }
+
+        const data = await response.json();
+
+        reportingHosts = new Set(
+            data.hosts
+                .filter(host => host.status.toLowerCase() !== "offline")
+                .map(host => host.host.toLowerCase())
+        );
+
+        updateTopologyPackets();
+        updateCharts(data.hosts);
+        // Update summary cards
+        const cards = document.querySelectorAll(".card h2");
+
+        if (cards.length >= 5) {
+            cards[0].textContent = data.counts.total;
+            cards[1].textContent = data.counts.healthy;
+            cards[2].textContent = data.counts.warning;
+            cards[3].textContent = data.counts.critical;
+            cards[4].textContent = data.counts.offline;
+        }
+
+        // Update host monitoring table
+        const tbody = document.querySelector("table tbody");
+
+        if (tbody) {
+            tbody.innerHTML = data.hosts.map(host => {
+                const status = host.status.toLowerCase();
+
+                return `
+                    <tr>
+                        <td>${host.host.toUpperCase()}</td>
+                        <td>${host.ip}</td>
+                        <td>${host.cpu}%</td>
+                        <td>${host.memory}%</td>
+                        <td>
+                            <span class="status ${status}">
+                                ${status.charAt(0).toUpperCase() + status.slice(1)}
+                            </span>
+                        </td>
+                        <td>${getNetworkAccess(host.ip)}</td>
+                        <td>
+                            <button class="sdn-btn block-btn"
+                                onclick="controlHost('${host.host}', 'block')">
+                                Block
+                            </button>
+                            <button class="sdn-btn unblock-btn"
+                                onclick="controlHost('${host.host}', 'unblock')">
+                                Unblock
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        // Update alerts
+        const alertsSection = [...document.querySelectorAll(".section")]
+            .find(section =>
+                section.querySelector("h3")?.textContent.trim() === "Recent Alerts"
+            );
+
+        if (alertsSection) {
+            alertsSection.querySelectorAll(".alerts").forEach(el => el.remove());
+
+            if (!data.alerts || data.alerts.length === 0) {
+                const message = document.createElement("div");
+                message.className = "alerts alert-success";
+                message.textContent = "🟢 No active monitoring alerts";
+                alertsSection.appendChild(message);
+            } else {
+                data.alerts.slice(0, 5).forEach(alert => {
+                    const message = document.createElement("div");
+                    message.className = "alerts";
+
+                    if (typeof alert === "string") {
+                        message.textContent = alert;
+                    } else {
+                        const host = alert.host || "Unknown";
+                        const cpu = Number(alert.cpu);
+                        const memory = Number(alert.memory);
+
+                        const currentHost = data.hosts?.find(
+                            h => h.host.toLowerCase() === host.toLowerCase()
+                        );
+
+                        const recovered = currentHost?.status === "healthy";
+
+                        const timestamp = Number(alert.timestamp);
+                        const date = Number.isFinite(timestamp)
+                            ? new Date(timestamp * 1000).toLocaleString()
+                            : "Unknown time";
+
+                        const title = document.createElement("div");
+                        title.style.fontWeight = "bold";
+                        title.style.marginBottom = "8px";
+                        const isWarning = alert.status === "warning";
+
+                        message.style.borderLeft = isWarning
+                            ? "3px solid #f59e0b"
+                            : "3px solid #ef4444";
+
+                        title.style.color = isWarning ? "#f59e0b" : "#ff6b6b";
+                        title.textContent =
+                            (isWarning
+                                ? "🟡 WARNING HEALTH ALERT — "
+                                : "🔴 CRITICAL HEALTH ALERT — ") +
+                            host.toUpperCase();
+
+                        const details = document.createElement("div");
+                        details.textContent =
+                            "CPU: " + (Number.isFinite(cpu) ? cpu + "%" : "N/A") +
+                            "  |  Memory: " +
+                            (Number.isFinite(memory) ? memory + "%" : "N/A");
+
+                        const detected = document.createElement("div");
+                        detected.style.marginTop = "6px";
+                        detected.style.color = "#94a3b8";
+                        detected.textContent = "Detected: " + date;
+
+                        const status = document.createElement("div");
+                        status.style.marginTop = "8px";
+                        status.style.color = recovered ? "#22c55e" : "#f59e0b";
+                        status.textContent = recovered
+                            ? "✓ Historical alert — Host currently healthy"
+                            : "⚠ Host status: " +
+                              (currentHost?.status || "Unknown");
+
+                        message.append(title, details, detected, status);
+                    }
+
+                    alertsSection.appendChild(message);
+                });
+            }
+        }
+
+    } catch (error) {
+        reportingHosts.clear();
+        updateTopologyPackets();
+        console.error("NetPulse live update failed:", error);
+    }
+}
+
+// Fetch immediately, then refresh every 5 seconds
+updateDashboard();
+setInterval(updateDashboard, 5000);
+
+
+
+function renderOpenFlowRules(flows) {
+    const tbody = document.getElementById("openflow-table");
+    if (!tbody) return;
+
+    tbody.replaceChildren();
+
+    if (!Array.isArray(flows) || flows.length === 0) {
+        const row = tbody.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 4;
+        cell.textContent = "No OpenFlow rules available";
+        cell.style.padding = "15px";
+        return;
+    }
+
+    flows.forEach(flow => {
+        const priority = flow.match(/priority=(\d+)/)?.[1] || "—";
+        const packets = flow.match(/n_packets=(\d+)/)?.[1] || "0";
+
+        const match = flow.split("priority=")[1]?.split(" actions=")[0] || "";
+        const conditions = match.replace(/^\d+,?/, "") || "All packets";
+
+        const action = flow.split(" actions=")[1] || "Unknown";
+
+        const row = tbody.insertRow();
+        row.style.borderBottom = "1px solid #334155";
+
+        const values = [priority, conditions, packets, action];
+
+        values.forEach((value, index) => {
+            const cell = row.insertCell();
+            cell.textContent = value;
+            cell.style.padding = "12px";
+            cell.style.fontSize = "12px";
+            cell.style.whiteSpace = "nowrap";
+            cell.style.wordBreak = "normal";
+
+            if (index === 3) {
+                cell.style.color = action.includes("drop")
+                    ? "#ef4444"
+                    : action.includes("CONTROLLER")
+                        ? "#f59e0b"
+                        : "#22c55e";
+            }
+        });
+    });
+}
+
+
+async function updateEventHistory() {
+    const tbody = document.getElementById("event-history-table");
+    if (!tbody) return;
+
+    try {
+        const response = await fetch("/api/events", {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error("Event Logs API unavailable");
+        }
+
+        const data = await response.json();
+
+        tbody.replaceChildren();
+
+        if (!Array.isArray(data.events) || data.events.length === 0) {
+            const row = tbody.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 5;
+            cell.textContent = "No SDN events recorded yet.";
+            cell.style.color = "#94a3b8";
+            return;
+        }
+
+        data.events.forEach(event => {
+            const row = tbody.insertRow();
+
+            const timestamp = event.timestamp
+                ? new Date(event.timestamp).toLocaleString()
+                : "Unknown";
+
+            const values = [
+                timestamp,
+                String(event.host || "Unknown").toUpperCase(),
+                event.action || "Unknown",
+                event.source || "Unknown",
+                event.access_changed === true
+                    ? "Yes"
+                    : event.access_changed === false
+                        ? "No"
+                        : "Unknown"
+            ];
+
+            values.forEach((value, index) => {
+                const cell = row.insertCell();
+                cell.textContent = value;
+                cell.style.padding = "14px 12px";
+                cell.style.borderBottom = "1px solid #334155";
+                cell.style.whiteSpace = "nowrap";
+
+                if (index === 2) {
+                    cell.style.color = value === "blocked"
+                        ? "#ef4444"
+                        : value === "unblocked"
+                            ? "#22c55e"
+                            : "#94a3b8";
+
+                    cell.style.fontWeight = "600";
+                }
+            });
+        });
+
+    } catch (error) {
+        tbody.replaceChildren();
+
+        const row = tbody.insertRow();
+        const cell = row.insertCell();
+
+        cell.colSpan = 5;
+        cell.textContent = "Unable to load SDN event history.";
+        cell.style.color = "#f59e0b";
+
+        console.error("Event history update failed:", error);
+    }
+}
+
+updateEventHistory();
+setInterval(updateEventHistory, 5000);
+
+async function updateSDN() {
+    const section = [...document.querySelectorAll(".section")]
+        .find(el => el.querySelector("h3")?.textContent.trim() === "SDN Controller");
+
+    if (!section) return;
+
+    const status = section.querySelector(".sdn-status");
+
+    try {
+        const response = await fetch("/api/sdn", {cache: "no-store"});
+        if (!response.ok) throw new Error("SDN API unavailable");
+
+        const data = await response.json();
+
+        blockedHostIPs = null;
+
+        if (!data.error && data.controller_connected &&
+            Array.isArray(data.flows)) {
+
+            blockedHostIPs = new Set();
+
+            data.flows.forEach(flow => {
+                const priority = flow.match(/priority=(\d+)/)?.[1];
+                const source = flow.match(/nw_src=(10\.0\.0\.[2-5])(?:,|\s|$)/)?.[1];
+
+                if (priority === "200" &&
+                    flow.includes("actions=drop") && source) {
+                    blockedHostIPs.add(source);
+                }
+            });
+        }
+
+        renderOpenFlowRules(data.flows);
+
+
+        if (status) {
+            status.textContent = data.error
+                ? "● Status Unavailable"
+                : data.controller_connected
+                    ? "● Connected"
+                    : "● Disconnected";
+
+            status.style.color = data.error
+                ? "#f59e0b"
+                : data.controller_connected
+                    ? "#22c55e"
+                    : "#ef4444";
+        }
+
+        section.querySelectorAll("p").forEach(p => {
+            if (p.textContent.includes("Flow Management:")) {
+                p.textContent = data.error
+                    ? "Flow Management: Unavailable"
+                    : "Flow Management: " + data.flow_count + " active rules";
+            }
+
+            if (p.textContent.includes("Priority Rules:")) {
+                const priorities = [...new Set(
+                    data.flows.map(flow => {
+                        const match = flow.match(/priority=(\d+)/);
+                        return match ? match[1] : null;
+                    }).filter(Boolean)
+                )];
+
+                p.textContent = "Installed Priorities: " +
+                    (priorities.join(", ") || "None");
+            }
+        });
+
+    } catch (error) {
+        blockedHostIPs = null;
+        if (status) {
+            status.textContent = "● Status Unavailable";
+            status.style.color = "#f59e0b";
+        }
+        console.error("SDN update failed:", error);
+    }
+
+    updateTopologyAccess();
+}
+
+updateSDN();
+setInterval(updateSDN, 5000);
+
+async function controlHost(host, action) {
+    if (!["h2", "h3", "h4", "h5"].includes(host)) {
+        alert("Invalid host");
+        return;
+    }
+
+    const buttonAction = action === "block" ? "block" : "unblock";
+
+    try {
+        const response = await fetch(`/api/${buttonAction}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ host })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "Command failed");
+        }
+
+        alert(result.message);
+
+    } catch (error) {
+        alert("SDN command failed: " + error.message);
+    }
+}
+
+</script>
+</body>
+</html>
