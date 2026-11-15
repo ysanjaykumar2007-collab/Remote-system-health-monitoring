@@ -420,6 +420,61 @@
             </tbody>
         </table>
     </div>
+
+<!-- CPU AND MEMORY SIMULATION -->
+<div class="section" id="simulation-panel">
+    <h3>⚙ CPU & Memory Simulation</h3>
+
+    <p style="color:#94a3b8;font-size:13px;margin:12px 0 20px">
+        Simulate resource usage on a selected host to test
+        health monitoring and automatic SDN responses.
+    </p>
+
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:end">
+
+        <div>
+            <label for="sim-host">Select Host</label><br>
+            <select id="sim-host" style="padding:10px;margin-top:8px">
+                <option value="h2">Host 2</option>
+                <option value="h3">Host 3</option>
+                <option value="h4">Host 4</option>
+                <option value="h5">Host 5</option>
+            </select>
+        </div>
+
+        <div>
+            <label for="sim-cpu">CPU Usage (%)</label><br>
+            <input id="sim-cpu" type="number" min="0" max="100"
+                   value="95" step="1"
+                   style="padding:10px;margin-top:8px;width:120px">
+        </div>
+
+        <div>
+            <label for="sim-memory">Memory Usage (%)</label><br>
+            <input id="sim-memory" type="number" min="0" max="100"
+                   value="70" step="1"
+                   style="padding:10px;margin-top:8px;width:120px">
+        </div>
+
+        <button id="sim-apply" type="button"
+                style="padding:11px 18px;cursor:pointer">
+            ▶ Apply Simulation
+        </button>
+
+        <button id="sim-restore" type="button"
+                style="padding:11px 18px;cursor:pointer">
+            ↺ Restore Normal
+        </button>
+
+    </div>
+
+    <p id="sim-message"
+       role="status"
+       style="margin-top:16px;color:#94a3b8;font-size:13px">
+        No simulation requested.
+    </p>
+</div>
+
 <!-- LIVE PERFORMANCE CHARTS -->
 <div class="grid-two" id="performance-charts">
 
@@ -1218,5 +1273,84 @@ async function controlHost(host, action) {
 }
 
 </script>
+
+<script id="netpulse-simulation-script">
+(() => {
+    const hostInput = document.getElementById("sim-host");
+    const cpuInput = document.getElementById("sim-cpu");
+    const memoryInput = document.getElementById("sim-memory");
+    const applyButton = document.getElementById("sim-apply");
+    const restoreButton = document.getElementById("sim-restore");
+    const message = document.getElementById("sim-message");
+
+    async function sendSimulationRequest(endpoint, payload) {
+        applyButton.disabled = true;
+        restoreButton.disabled = true;
+
+        message.textContent = "Processing request...";
+        message.style.color = "#94a3b8";
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Request failed");
+            }
+
+            message.textContent = result.message;
+            message.style.color = "#22c55e";
+
+        } catch (error) {
+            message.textContent = "Error: " + error.message;
+            message.style.color = "#ef4444";
+
+        } finally {
+            applyButton.disabled = false;
+            restoreButton.disabled = false;
+        }
+    }
+
+    applyButton.addEventListener("click", () => {
+        const host = hostInput.value;
+        const cpu = Number(cpuInput.value);
+        const memory = Number(memoryInput.value);
+
+        if (
+            cpuInput.value.trim() === "" ||
+            memoryInput.value.trim() === "" ||
+            !Number.isFinite(cpu) ||
+            !Number.isFinite(memory) ||
+            cpu < 0 || cpu > 100 ||
+            memory < 0 || memory > 100
+        ) {
+            message.textContent =
+                "Enter valid CPU and memory values between 0 and 100.";
+            message.style.color = "#ef4444";
+            return;
+        }
+
+        sendSimulationRequest("/api/simulate", {
+            host,
+            cpu,
+            memory
+        });
+    });
+
+    restoreButton.addEventListener("click", () => {
+        sendSimulationRequest("/api/restore", {
+            host: hostInput.value
+        });
+    });
+})();
+</script>
+
 </body>
 </html>

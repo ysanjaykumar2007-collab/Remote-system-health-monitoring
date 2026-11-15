@@ -173,7 +173,16 @@ class NetPulseController(app_manager.OSKenApp):
             ]
         )
 
-        # Reinstall active restrictions after reconnection.
+        # Synchronize NetPulse restrictions after reconnection.
+        # Remove stale restrictions, then reinstall active ones.
+        for host_ip in (
+            "10.0.0.2",
+            "10.0.0.3",
+            "10.0.0.4",
+            "10.0.0.5"
+        ):
+            self.remove_block(datapath, host_ip)
+
         for host_ip in blocked:
             self.install_block(datapath, host_ip)
 

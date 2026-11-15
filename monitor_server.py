@@ -70,17 +70,19 @@ def update_sdn_state(server_id, cpu, memory):
 
     critical = cpu >= CPU_CRITICAL or memory >= MEMORY_CRITICAL
 
-    if critical and server_id not in blocked_hosts:
-        print(f"[SDN] Critical condition detected on {server_id}")
+    if critical:
+        # Reconcile automatic blocking after controller restarts.
+        if server_id not in blocked_hosts:
+            print(f"[SDN] Critical condition detected on {server_id}")
 
         if send_sdn_command("block", server_id):
             blocked_hosts.add(server_id)
 
-    elif not critical and server_id in blocked_hosts:
-        print(f"[SDN] {server_id} recovered")
-
+    elif not critical:
+        # Reconcile automatic blocking state after server restarts.
+        # Manual blocks remain protected by the controller.
         if send_sdn_command("unblock", server_id):
-            blocked_hosts.remove(server_id)
+            blocked_hosts.discard(server_id)
 
 
 def check_missing_servers():

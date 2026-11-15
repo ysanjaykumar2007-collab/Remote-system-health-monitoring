@@ -9,7 +9,7 @@ help:
 	@echo "make clean      - Clean up Mininet"
 
 check:
-	python3 -m py_compile start_controller.py netpulse_controller.py topology.py monitor_server.py health_agent.py dashboard/dashboard_bridge.py
+	python3 -m py_compile start_controller.py netpulse_controller.py topology.py monitor_server.py health_agent.py tcp_server.py dashboard/dashboard_bridge.py
 
 topology:
 	sudo mn --custom topology.py --topo healthmonitor --controller none --switch ovsk,protocols=OpenFlow13

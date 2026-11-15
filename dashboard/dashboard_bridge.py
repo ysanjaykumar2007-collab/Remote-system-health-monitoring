@@ -6,6 +6,7 @@ import socket
 import struct
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
+from simulation import start_simulation, restore_host, get_simulation_status, restore_all
 
 # Configuration
 INTERFACE = "s1-eth1"
@@ -325,7 +326,53 @@ def get_sdn_data():
     return result
 
 class DashboardHandler(BaseHTTPRequestHandler):
-    def do_POST(self):
+    def do_simulation_POST(self):
+        if self.path in ("/api/simulate", "/api/restore"):
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+
+                if length <= 0 or length > 4096:
+                    raise ValueError("Invalid request size")
+
+                request = json.loads(
+                    self.rfile.read(length).decode()
+                )
+
+                host = request.get("host")
+
+                if self.path == "/api/simulate":
+                    message = start_simulation(
+                        host,
+                        request.get("cpu"),
+                        request.get("memory")
+                    )
+                else:
+                    message = restore_host(host)
+
+                status = 200
+                response = {
+                    "success": True,
+                    "message": message
+                }
+
+            except (ValueError, TypeError, RuntimeError, OSError) as error:
+                status = 400
+                response = {
+                    "success": False,
+                    "message": str(error)
+                }
+
+            data = json.dumps(response).encode()
+
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+            return
+
+    def do_manual_POST(self):
         if self.path not in ("/api/block", "/api/unblock"):
             self.send_error(404)
             return
@@ -372,7 +419,31 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
 
 
+    def do_POST(self):
+        if self.path in ("/api/simulate", "/api/restore"):
+            return self.do_simulation_POST()
+        return self.do_manual_POST()
+
+    def do_simulation_GET(self):
+        if self.path == "/api/simulation":
+            data = json.dumps({
+                "simulations": get_simulation_status()
+            }).encode()
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+            return
+
     def do_GET(self):
+        if self.path == "/api/simulation":
+            return self.do_simulation_GET()
+        return self.do_existing_GET()
+
+    def do_existing_GET(self):
         if self.path == "/api/events":
             log_path = (
                 Path(__file__).resolve().parent.parent

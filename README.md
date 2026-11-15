@@ -1,192 +1,320 @@
 # NetPulse — SDN-Based Remote Health Monitoring
 
-## 1. Introduction
+A Python-based remote health monitoring and network protection system built using **Mininet, Open vSwitch, OS-Ken and OpenFlow 1.3**.
 
-NetPulse is a remote system health monitoring and network protection project built using Python, Mininet, Open vSwitch and the OS-Ken SDN controller.
+NetPulse monitors simulated hosts, detects abnormal resource usage, and dynamically applies network access restrictions through an SDN controller. A web dashboard provides real-time monitoring, network visualization and manual network controls.
 
-It monitors four simulated hosts, detects abnormal resource usage and dynamically applies network restrictions through OpenFlow rules.
+---
 
-A web dashboard provides live monitoring, network visualization, manual SDN controls and event history.
+## 1. Project Overview
+
+NetPulse demonstrates the integration of:
+
+- Socket programming using UDP and TCP.
+- Centralized system health monitoring.
+- Software-Defined Networking (SDN).
+- Dynamic OpenFlow rule management.
+- Automated host blocking and recovery.
+- Real-time web-based monitoring.
 
 ## 2. Network Architecture
 
+The project uses a Mininet topology containing five hosts connected through an Open vSwitch.
+
 | Node | IP Address | Role |
 |---|---|---|
-| h1 | 10.0.0.1 | Monitoring server |
+| h1 | 10.0.0.1 | Central monitoring server |
 | h2 | 10.0.0.2 | Monitored host |
 | h3 | 10.0.0.3 | Monitored host |
 | h4 | 10.0.0.4 | Monitored host |
 | h5 | 10.0.0.5 | Monitored host |
 | s1 | — | Open vSwitch |
 
-All five hosts connect to switch s1.
+The OS-Ken controller manages the switch through OpenFlow 1.3.
+
+### Architecture workflow
+
+1. Monitoring agents collect host resource statistics.
+2. Agents transmit reports to h1 using UDP.
+3. The monitoring server evaluates incoming reports.
+4. Critical conditions trigger SDN control requests.
+5. The controller installs or removes OpenFlow rules.
+6. The dashboard displays monitoring information and network access status.
 
 ## 3. Health Monitoring
 
-Monitoring agents collect and transmit health reports to h1 using UDP port 5000.
+Each monitored host runs a Python health agent.
 
-Reports are transmitted every 5 seconds and contain:
+Reports are transmitted every five seconds through UDP port **5000**.
 
-- CPU usage
-- Memory usage
-- Process count
-- Network transmission and reception statistics
-- Host identity and timestamp
+Collected information includes:
+
+- CPU utilization.
+- Memory utilization.
+- Process count.
+- Network transmission statistics.
+- Network reception statistics.
+- Host identity and timestamp.
 
 ### Monitoring thresholds
 
 | Condition | Threshold |
 |---|---|
-| Warning | CPU or memory >= 80% |
-| Critical | CPU or memory >= 90% |
+| Warning | CPU or memory ≥ 80% |
+| Critical | CPU or memory ≥ 90% |
 | Offline | No report for more than 15 seconds |
 
-## 4. SDN-Based Protection
+## 4. SDN-Based Network Protection
 
-The OS-Ken controller dynamically manages OpenFlow rules.
+The OS-Ken controller dynamically manages OpenFlow rules on switch s1.
 
 ### OpenFlow priorities
 
 | Priority | Function |
 |---|---|
-| 300 | Permit UDP health reports from monitored hosts to h1 |
-| 200 | Drop other IPv4 traffic from blocked hosts |
+| 300 | Permit UDP health reports from monitored hosts |
+| 200 | Block other IPv4 traffic from restricted hosts |
 | 10 | Normal MAC-learning forwarding |
 | 0 | Table-miss handling |
 
 ### Automatic protection
 
-When a host reports critical CPU or memory usage, the monitoring server requests the controller to block that host.
+When a monitored host reaches a critical CPU or memory threshold:
 
-Health reports remain permitted so that recovery can be detected.
-
-When the host recovers, the automatic restriction is removed.
+1. The monitoring server detects the critical condition.
+2. It sends a blocking request to the SDN controller.
+3. The controller installs a higher-priority blocking rule.
+4. Health reports remain permitted.
+5. Once the host recovers, the automatic restriction is removed.
 
 ### Manual protection
 
-Users can manually block and unblock hosts through the dashboard.
+The dashboard also provides manual block and unblock controls.
 
-Manual and automatic blocking reasons are tracked separately.
+Manual and automatic blocking reasons are tracked separately, preventing one type of restriction from incorrectly removing another.
 
-## 5. Web Dashboard
+## 5. Communication Services
 
-The dashboard is available locally at:
+| Protocol | Port | Purpose |
+|---|---:|---|
+| UDP | 5000 | Periodic health reports |
+| TCP | 6000 | Standalone TCP health service |
+| HTTP | 8080 | Web dashboard |
 
-http://127.0.0.1:8080
+UDP is used for periodic health reporting, while the TCP service provides a separate basic health-response mechanism.
+
+## 6. Web Dashboard
+
+The dashboard provides a centralized interface for monitoring the simulated network.
 
 Features include:
 
-- Live host monitoring
-- CPU and memory charts
-- Host health indicators
-- Network access status
-- Manual block/unblock controls
-- Individual animated topology connections
-- SDN controller status
-- Live OpenFlow rules
-- Recent monitoring alerts
-- Persistent SDN event history
+- Live host monitoring.
+- CPU and memory usage charts.
+- Warning, critical and offline indicators.
+- Network access status.
+- Individual animated network connections.
+- Manual host blocking and unblocking.
+- SDN controller status.
+- Live OpenFlow rule inspection.
+- Recent monitoring alerts.
+- SDN event history.
 
-The topology animations represent inferred monitoring activity, not individual captured UDP packets.
+The topology animations represent inferred monitoring activity based on live reporting and network access state. They should not be interpreted as individual packet-by-packet animations.
 
-## 6. Project Structure
+Dashboard address:
 
-| File | Purpose |
-|---|---|
-| topology.py | Defines Mininet topology |
-| health_agent.py | Collects and sends health reports |
-| monitor_server.py | Receives reports and handles alerts |
-| netpulse_controller.py | Implements SDN control |
-| start_controller.py | Starts OS-Ken controller |
-| dashboard/dashboard_bridge.py | Dashboard HTTP backend |
-| dashboard/index.html | Dashboard frontend |
-| logs/sdn_events.jsonl | SDN event history |
-| Makefile | Build and startup shortcuts |
+`http://127.0.0.1:8080`
 
-## 7. Running the Project
+## 7. Project Structure
 
-Start each component in a separate terminal where indicated.
+```text
+Remote-system-health-monitoring/
+│
+├── dashboard/
+│   ├── dashboard_bridge.py
+│   └── index.html
+│
+├── logs/
+│   └── .gitkeep
+│
+├── controller/
+│   (development copies excluded from submission)
+│
+├── health_agent.py
+├── monitor_server.py
+├── netpulse_controller.py
+├── start_controller.py
+├── tcp_server.py
+├── topology.py
+├── Makefile
+├── requirements.txt
+├── .gitignore
+└── README.md
+```
+
+The authoritative implementations are the root-level Python files and the dashboard files.
+
+Runtime SDN event records are generated in `logs/sdn_events.jsonl` and are intentionally excluded from Git.
+
+## 8. Installation and Prerequisites
+
+Required software:
+
+- Ubuntu Linux.
+- Python 3.
+- Mininet.
+- Open vSwitch.
+- OS-Ken.
+- tcpdump.
+
+Install the system dependencies:
+
+```bash
+sudo apt update
+sudo apt install mininet openvswitch-switch tcpdump python3-venv -y
+```
+
+Clone the repository:
+
+```bash
+git clone https://github.com/ysanjaykumar2007-collab/Remote-system-health-monitoring.git ~/health-monitor
+cd ~/health-monitor
+```
+
+Create a Python virtual environment and install dependencies:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## 9. Running the Project
+
+Run each component in its designated terminal.
 
 ### Step 1: Start Mininet
 
-From the project directory:
-
-    make topology
+```bash
+cd ~/health-monitor
+make topology
+```
 
 ### Step 2: Start the SDN controller
 
-In another terminal:
+In another terminal, activate the virtual environment:
 
-    cd ~/health-monitor
-    python3 start_controller.py
+```bash
+cd ~/health-monitor
+source .venv/bin/activate
+python3 start_controller.py
+```
 
 ### Step 3: Connect the switch
 
 Inside the Mininet CLI:
 
-    sh ovs-vsctl set-controller s1 tcp:127.0.0.1:6653
-    sh ovs-vsctl set-fail-mode s1 secure
+```bash
+sh ovs-vsctl set-controller s1 tcp:127.0.0.1:6653
+sh ovs-vsctl set-fail-mode s1 secure
+```
 
 ### Step 4: Start the monitoring server
 
 Inside the Mininet CLI:
 
-    h1 python3 -u /home/sanjay/health-monitor/monitor_server.py > /tmp/health-h1.log 2>&1 &
+```bash
+h1 python3 -u /home/USER/health-monitor/monitor_server.py
+```
 
-### Step 5: Start the monitoring agents
+Replace `USER` with the Ubuntu username.
 
-Inside the Mininet CLI:
+### Step 5: Start monitoring agents
 
-    h2 env SERVER_ID=h2 python3 -u /home/sanjay/health-monitor/health_agent.py > /tmp/health-h2.log 2>&1 &
-    h3 env SERVER_ID=h3 python3 -u /home/sanjay/health-monitor/health_agent.py > /tmp/health-h3.log 2>&1 &
-    h4 env SERVER_ID=h4 python3 -u /home/sanjay/health-monitor/health_agent.py > /tmp/health-h4.log 2>&1 &
-    h5 env SERVER_ID=h5 python3 -u /home/sanjay/health-monitor/health_agent.py > /tmp/health-h5.log 2>&1 &
+In the Mininet CLI:
+
+```bash
+h2 env SERVER_ID=h2 python3 -u /home/USER/health-monitor/health_agent.py &
+h3 env SERVER_ID=h3 python3 -u /home/USER/health-monitor/health_agent.py &
+h4 env SERVER_ID=h4 python3 -u /home/USER/health-monitor/health_agent.py &
+h5 env SERVER_ID=h5 python3 -u /home/USER/health-monitor/health_agent.py &
+```
 
 ### Step 6: Start the dashboard
 
-In another terminal:
+In another Ubuntu terminal:
 
-    cd ~/health-monitor
-    sudo python3 -u dashboard/dashboard_bridge.py
+```bash
+cd ~/health-monitor
+sudo .venv/bin/python dashboard/dashboard_bridge.py
+```
 
 Open Firefox inside the Ubuntu VM:
 
-    http://127.0.0.1:8080
+`http://127.0.0.1:8080`
 
-Note: Replace /home/sanjay/health-monitor with the actual project path if it differs.
+### Optional: Start the TCP health service
 
-## 8. Verification and Testing
+Run this separately on the intended Mininet host:
 
-### Check Mininet connectivity
+```bash
+h2 python3 -u /home/USER/health-monitor/tcp_server.py
+```
 
-    pingall
+The TCP service listens on port 6000.
+
+## 10. Verification and Testing
+
+### Check network connectivity
+
+Inside Mininet:
+
+```bash
+pingall
+```
 
 ### Inspect OpenFlow rules
 
-    sh ovs-ofctl -O OpenFlow13 dump-flows s1
+```bash
+sh ovs-ofctl -O OpenFlow13 dump-flows s1
+```
 
 ### Check Python syntax
 
-    make check
+```bash
+make check
+```
 
-### Test SDN protection
+### Verify monitoring
 
-Use the dashboard to manually block and unblock monitored hosts.
+Inspect the monitoring server output and confirm that reports arrive from h2, h3, h4 and h5.
 
-Simulate critical health reports to verify automatic blocking and recovery.
+### Verify SDN protection
 
-Check the SDN event log:
+Use the dashboard to manually block and unblock hosts.
 
-    cat logs/sdn_events.jsonl
+Simulate critical resource reports to test automatic blocking and recovery.
 
-## 9. Implementation Notes and Limitations
+Inspect the event history:
 
-Mininet hosts share the underlying Linux kernel. Therefore, CPU and memory statistics obtained through /proc represent the Ubuntu VM's resource usage rather than independent physical host measurements.
+```bash
+cat logs/sdn_events.jsonl
+```
 
-The dashboard binds to 127.0.0.1 and is intended for local access inside the Ubuntu VM.
+## 11. Implementation Notes and Limitations
 
-## 10. Conclusion
+- Mininet hosts share the underlying Linux kernel. Therefore, CPU and memory statistics obtained through `/proc` represent the Ubuntu VM's resource usage rather than independent physical host measurements.
+- The dashboard binds to `127.0.0.1` and is intended for local access inside the Ubuntu VM.
+- The topology animation is a visualization of monitoring and access state, not a packet-by-packet replay.
+- The project is designed as an educational SDN demonstration environment.
 
-NetPulse demonstrates the integration of socket programming, centralized health monitoring, software-defined networking and web-based visualization.
+## 12. Conclusion
 
-It demonstrates how network access policies can be dynamically adjusted in response to monitored system conditions.
+NetPulse demonstrates how socket programming, centralized health monitoring and Software-Defined Networking can be integrated into a single system.
+
+By combining UDP-based monitoring, TCP communication, dynamic OpenFlow rule management and a real-time dashboard, the project demonstrates how network access policies can be adjusted in response to monitored system conditions.
+
+---
+
+**Technologies:** Python · Mininet · Open vSwitch · OS-Ken · OpenFlow 1.3 · HTML · CSS · JavaScript
