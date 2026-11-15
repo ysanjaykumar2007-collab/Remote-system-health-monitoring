@@ -1,5 +1,10 @@
 # NetPulse — SDN-Based Remote Health Monitoring
+## Team Members
 
+| Name | SRN |
+|------|-----|
+| Tejas Gowda M N | PES1UG25AM531 |
+| Ranjani | PES1UG25AM543 |
 A Python-based remote health monitoring and network protection system built using **Mininet, Open vSwitch, OS-Ken and OpenFlow 1.3**.
 
 NetPulse monitors simulated hosts, detects abnormal resource usage, and dynamically applies network access restrictions through an SDN controller. A web dashboard provides real-time monitoring, network visualization and manual network controls.
@@ -192,7 +197,28 @@ pip install -r requirements.txt
 
 ## 9. Running the Project
 
-Run each component in its designated terminal.
+### Recommended Method: Automated Startup
+
+NetPulse provides an automated startup script that launches the
+SDN controller, Mininet network, monitoring services, and web dashboard.
+
+From the project directory, run:
+
+```bash
+cd ~/health-monitor
+./start_netpulse.sh
+```
+
+Open the dashboard in Firefox:
+
+http://127.0.0.1:8080
+
+To stop NetPulse, type `exit` in the Mininet CLI.
+
+### Alternative Method: Manual Startup
+
+The following steps describe manual startup for troubleshooting.
+
 
 ### Step 1: Start Mininet
 
@@ -318,3 +344,17 @@ By combining UDP-based monitoring, TCP communication, dynamic OpenFlow rule mana
 ---
 
 **Technologies:** Python · Mininet · Open vSwitch · OS-Ken · OpenFlow 1.3 · HTML · CSS · JavaScript
+---
+
+## Project Screenshots
+
+The following screenshots demonstrate the implementation and testing of NetPulse.
+
+| Screenshot | Description |
+|---|---|
+| [Main Dashboard](screenshots/01_dashboard.png) | Live health monitoring overview |
+| [Network Topology](screenshots/02_topology.png) | Mininet topology and SDN controller |
+| [Host Monitoring](screenshots/03_host_monitoring.png) | CPU, memory and host status |
+| [Automatic Blocking](screenshots/04_automatic_block.png) | SDN protection triggered by critical resource usage |
+| [Automatic Recovery](screenshots/05_recovery.png) | Network access restored after recovery |
+| [Event Logs](screenshots/06_event_logs.png) | History of SDN blocking and unblocking events |
