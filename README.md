@@ -3,8 +3,10 @@
 
 | Name | SRN |
 |------|-----|
+| Y Sanjay Kumar | PES1UG25AM535 |
 | Tejas Gowda M N | PES1UG25AM531 |
 | Ranjani | PES1UG25AM543 |
+
 A Python-based remote health monitoring and network protection system built using **Mininet, Open vSwitch, OS-Ken and OpenFlow 1.3**.
 
 NetPulse monitors simulated hosts, detects abnormal resource usage, and dynamically applies network access restrictions through an SDN controller. A web dashboard provides real-time monitoring, network visualization and manual network controls.
@@ -358,3 +360,26 @@ The following screenshots demonstrate the implementation and testing of NetPulse
 | [Automatic Blocking](screenshots/04_automatic_block.png) | SDN protection triggered by critical resource usage |
 | [Automatic Recovery](screenshots/05_recovery.png) | Network access restored after recovery |
 | [Event Logs](screenshots/06_event_logs.png) | History of SDN blocking and unblocking events |
+---
+
+## Individual Contributions
+
+### 1. Tejas Gowda M N (PES1UG25AM531)
+**Network Topology and Setup**
+- Developed and configured the Mininet network topology.
+- Configured virtual hosts and Open vSwitch.
+- Established network connectivity between monitoring nodes.
+
+### 2. Ranjani (PES1UG25AM543)
+**Health Monitoring and SDN Controller**
+- Developed the health monitoring server and agents.
+- Implemented CPU and memory monitoring.
+- Implemented SDN-based automatic blocking and recovery using OpenFlow rules.
+
+### 3. Y Sanjay Kumar (PES1UG25AM535)
+**Web Dashboard, Testing and Documentation**
+- Developed the web dashboard for real-time monitoring.
+- Implemented host visualization, network topology display, and event logs.
+- Tested manual blocking, automatic blocking, and recovery.
+- Captured screenshots and prepared project documentation.
+- Managed the GitHub repository and README.
